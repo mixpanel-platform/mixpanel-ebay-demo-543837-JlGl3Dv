@@ -6,46 +6,66 @@
     <script src="https://cdn.mxpnl.com/libs/mixpanel-platform/build/mixpanel-platform.v0.latest.min.js"></script>
   </head>
   <body class="mixpanel-platform-body">
-    <div class="mixpanel-platform-section">
-      <div id="eventSelect" style="float: left;"></div>
-      <div id="by" class="mixpanel-platform-label" style="margin-left: 10px; display: none;">by</div>
-      <div id="propSelect" style="float: left;"></div>
-      <div id="dateSelect" style="float: right;"></div>
-      <div style="clear: both;"></div>
-      <div id="graph"></div>
-    </div>
-    <div id="table"></div>
+    <h1>Hello, World!</h1>
     <script>
-      MP.api.ready(function() {
-        var eventSelect = $('#eventSelect').MPEventSelect();
-        var propSelect  = $('#propSelect').MPPropertySelect();
-        var dateSelect  = $('#dateSelect').MPDatepicker();
-        var eventGraph  = $('#graph').MPChart({chartType: 'line'});
-        var eventTable  = $('#table').MPTable({
-          showPercentages: true,
-          firstColHeader: 'Event'
-        });
+        var params =
 
-        var runQuery = function() {
-          var eventName = eventSelect.MPEventSelect('value'),
-              propName  = propSelect.MPPropertySelect('value'),
-              dateRange = dateSelect.MPDatepicker('value');
+        {
+        
+        from: moment().subtract(30, 'days'), // the earliest date you'd like to include in the query
+        
+        to: moment(),
+        
+        limit: 20 // maximum number of results to return
+        
+        }
 
-          if (eventName) {
-            MP.api.segment(eventName, propName, dateRange).done(function(results) {
-              eventGraph.MPChart('setData', results);
-              eventTable.MPTable('setData', results);
-            });
+MP.api.ready(function() { // wait until your API credentials have been registered
+
+MP.api.segment('$signup','mp_country_code',params).done(function(queryResults)
+
+{
+
+console.log(queryResults.values());
+
+// Create a bar chart
+data = queryResults.values();
+processResults(data);
+
+});
+
+var processResults = function(data) {
+          var adjustedResults = {};
+          var totals = {};
+          var keys = Object.keys(data);
+          for(i=0; i<keys.length; i++){
+            var current_results = data[keys[i]];
+            var current_keys = Object.keys(current_results);
+            var total = 0;
+            for(j=0; j<current_keys.length; j++){
+              total += current_results[current_keys[j]];
+            }
+            totals[keys[i]] = total;
           }
-        };
-        eventSelect.on('change', function(e, eventName) {
-          propSelect.MPPropertySelect('setEvent', eventName);
-          $("#by").show();
-          runQuery();
-        });
-        propSelect.on('change', runQuery);
-        dateSelect.on('change', runQuery);
-      });
+          console.log(totals);
+          var totals_keys = Object.keys(totals);
+          for(i=0; i<params['limit']; i++){
+              var max_key = _.invert(totals)[_.max(totals)];
+              adjustedResults[max_key] = data[max_key];
+              delete data[max_key];
+              delete totals[max_key];
+            }
+          console.log(adjustedResults)
+            
+      var barChart = $('<div></div>').appendTo('body').MPChart({chartType: 'bar', stacked: 'true'});
+
+// Set the chart's data
+
+barChart.MPChart('setData', adjustedResults);
+}
+
+});
+
     </script>
   </body>
 </html>
